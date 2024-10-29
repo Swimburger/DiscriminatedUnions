@@ -18,7 +18,7 @@ internal class AnimalConverter : JsonConverter<Animal>
     {
         var jsonNode = JsonSerializer.SerializeToNode(animal.Value as AnimalWithDiscriminator, options);
         if(jsonNode == null) throw new JsonException();
-        jsonNode["animalType"] = animal.AnimalType switch
+        jsonNode[Animal.DiscriminatorName] = animal.AnimalType switch
         {
             AnimalType.Dog => "Dog",
             AnimalType.Cat => "Cat",
@@ -38,6 +38,7 @@ public enum AnimalType
 [JsonConverter(typeof(AnimalConverter))]
 public record Animal
 {
+    internal const string DiscriminatorName = "animalType";
     public Animal(Dog dog)
     {
         AnimalType = AnimalType.Dog;
@@ -67,7 +68,7 @@ public record Animal
         }
     }
 
-    [JsonPropertyName("animalType")] public AnimalType AnimalType { get; }
+    [JsonPropertyName(DiscriminatorName)] public AnimalType AnimalType { get; }
 
     [JsonIgnore] public AnimalValue Value { get; }
     public bool IsDog => AnimalType == AnimalType.Dog;
@@ -105,7 +106,7 @@ public record Animal
     }
 }
 
-[JsonPolymorphic(TypeDiscriminatorPropertyName = "animalType",
+[JsonPolymorphic(TypeDiscriminatorPropertyName = Animal.DiscriminatorName,
     UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization)]
 [JsonDerivedType(typeof(Dog), typeDiscriminator: "Dog")]
 [JsonDerivedType(typeof(Cat), typeDiscriminator: "Cat")]

@@ -1,138 +1,123 @@
 using System.Text.Json.Serialization;
+using System.Text.Json;
 
-[JsonPolymorphic(TypeDiscriminatorPropertyName = "type", UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization)]
-[JsonDerivedType(typeof(TwoDimensionalPoint), typeDiscriminator: "2d")]
-[JsonDerivedType(typeof(ThreeDimensionalPoint), typeDiscriminator: "3d")]
-[JsonDerivedType(typeof(FourDimensionalPoint), typeDiscriminator: "4d")]
-[JsonDerivedType(typeof(TwoDimensionalPointWithName), typeDiscriminator: "2dNamed")]
-public interface IBasePoint
+internal class AnimalConverter : JsonConverter<Animal>
 {
-    public string Type { get; }
-}
+    public override bool CanConvert(Type typeToConvert) => typeof(Animal).IsAssignableFrom(typeToConvert);
 
-public static class IBasePointExtensions
-{
-    public static T Match<T>(this IBasePoint basePoint,
-        Func<TwoDimensionalPoint, T> onTwoDimensionalPoint,
-        Func<TwoDimensionalPointWithName, T> onTwoDimensionalPointWithName,
-        Func<ThreeDimensionalPoint, T> onThreeDimensionalPoint,
-        Func<FourDimensionalPoint, T> onFourDimensionalPoint,
-        Func<T> onFallback
-    )
+    public override Animal Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        switch (basePoint)
-        {
-            case TwoDimensionalPoint twoDimensionalPoint:
-                return onTwoDimensionalPoint(twoDimensionalPoint);
-            case TwoDimensionalPointWithName twoDimensionalPointWithName:
-                return onTwoDimensionalPointWithName(twoDimensionalPointWithName);
-            case ThreeDimensionalPoint threeDimensionalPoint:
-                return onThreeDimensionalPoint(threeDimensionalPoint);
-            case FourDimensionalPoint fourDimensionalPoint:
-                return onFourDimensionalPoint(fourDimensionalPoint);
-            default:
-                return onFallback();
-        }
+        var jsonObject = JsonElement.ParseValue(ref reader);
+        var animalValue = jsonObject.Deserialize<AnimalWithDiscriminator>(options);
+        if (animalValue == null) throw new JsonException();
+        return new Animal(animalValue);
     }
-    public static void Visit(this IBasePoint basePoint,
-        Action<TwoDimensionalPoint> onTwoDimensionalPoint,
-        Action<TwoDimensionalPointWithName> onTwoDimensionalPointWithName,
-        Action<ThreeDimensionalPoint> onThreeDimensionalPoint,
-        Action<FourDimensionalPoint> onFourDimensionalPoint,
-        Action onFallback
-    )
+
+    public override void Write(
+        Utf8JsonWriter writer, Animal animal, JsonSerializerOptions options)
     {
-        switch (basePoint)
+        var jsonNode = JsonSerializer.SerializeToNode(animal.Value as AnimalWithDiscriminator, options);
+        if(jsonNode == null) throw new JsonException();
+        jsonNode["animalType"] = animal.AnimalType switch
         {
-            case TwoDimensionalPoint twoDimensionalPoint:
-                onTwoDimensionalPoint(twoDimensionalPoint);
-                break;
-            case TwoDimensionalPointWithName twoDimensionalPointWithName:
-                onTwoDimensionalPointWithName(twoDimensionalPointWithName);
-                break;
-            case ThreeDimensionalPoint threeDimensionalPoint:
-                onThreeDimensionalPoint(threeDimensionalPoint);
-                break;
-            case FourDimensionalPoint fourDimensionalPoint:
-                onFourDimensionalPoint(fourDimensionalPoint);
-                break;
-            default:
-                onFallback();
-                break;
-        }
+            AnimalType.Dog => "Dog",
+            AnimalType.Cat => "Cat",
+            _ => throw new JsonException()
+        };
+        jsonNode.WriteTo(writer, options);
     }
 }
 
-public interface ITwoDimensionalPoint
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum AnimalType
 {
-    public int X { get; set; }
-    public int Y { get; set; }
+    Dog,
+    Cat
 }
 
-public record TwoDimensionalPoint : ITwoDimensionalPoint, IBasePoint
+[JsonConverter(typeof(AnimalConverter))]
+public record Animal
 {
-    [JsonPropertyName("type")]
-    public string Type => "2d";
-    [JsonPropertyName("x")]
-    public int X { get; set; }
-    [JsonPropertyName("y")]
-    public int Y { get; set; }
+    public Animal(Dog dog)
+    {
+        AnimalType = AnimalType.Dog;
+        Value = dog;
+    }
+
+    public Animal(Cat cat)
+    {
+        AnimalType = AnimalType.Cat;
+        Value = cat;
+    }
+
+    internal Animal(AnimalWithDiscriminator value)
+    {
+        switch (value)
+        {
+            case Dog dog:
+                AnimalType = AnimalType.Dog;
+                Value = dog;
+                break;
+            case Cat cat:
+                AnimalType = AnimalType.Cat;
+                Value = cat;
+                break;
+            default:
+                throw new Exception("Unexpected animal type");
+        }
+    }
+
+    [JsonPropertyName("animalType")] public AnimalType AnimalType { get; }
+
+    [JsonIgnore] public AnimalValue Value { get; }
+    public bool IsDog => AnimalType == AnimalType.Dog;
+    public bool IsCat => AnimalType == AnimalType.Cat;
+    public T As<T>() where T : AnimalValue => (T)Value;
+    public Dog AsDog() => (Dog)Value;
+    public Cat AsCat() => (Cat)Value;
+
+    public T Match<T>(Func<Dog, T> onDog, Func<Cat, T> onCat)
+    {
+        switch (AnimalType)
+        {
+            case AnimalType.Dog:
+                return onDog((Dog)Value);
+            case AnimalType.Cat:
+                return onCat((Cat)Value);
+            default:
+                throw new Exception("Unexpected animal type");
+        }
+    }
+
+    public void Visit(Action<Dog> onDog, Action<Cat> onCat)
+    {
+        switch (AnimalType)
+        {
+            case AnimalType.Dog:
+                onDog((Dog)Value);
+                break;
+            case AnimalType.Cat:
+                onCat((Cat)Value);
+                break;
+            default:
+                throw new Exception("Unexpected animal type");
+        }
+    }
 }
 
-public interface IThreeDimensionalPoint
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "animalType",
+    UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization)]
+[JsonDerivedType(typeof(Dog), typeDiscriminator: "Dog")]
+[JsonDerivedType(typeof(Cat), typeDiscriminator: "Cat")]
+internal interface AnimalWithDiscriminator;
+public interface AnimalValue;
+
+public record Dog : AnimalValue, AnimalWithDiscriminator
 {
-    public int X { get; set; }
-    public int Y { get; set; }
-    public int Z { get; set; }
+    [JsonPropertyName("likesToWoof")] public bool LikesToWoof { get; set; }
 }
 
-public record ThreeDimensionalPoint : IThreeDimensionalPoint, IBasePoint
+public record Cat : AnimalValue, AnimalWithDiscriminator
 {
-    [JsonPropertyName("type")]
-    public string Type => "3d";
-    [JsonPropertyName("x")]
-    public int X { get; set; }
-    [JsonPropertyName("y")]
-    public int Y { get; set; }
-    [JsonPropertyName("z")]
-    public int Z { get; set; }
-}
-
-public interface IFourDimensionalPoint
-{
-    public int X { get; set; }
-    public int Y { get; set; }
-    public int Z { get; set; }
-    public int W { get; set; }
-}
-
-public record FourDimensionalPoint : IFourDimensionalPoint, IBasePoint
-{
-    [JsonPropertyName("type")]
-    public string Type => "4d";
-    [JsonPropertyName("x")]
-    public int X { get; set; }
-    [JsonPropertyName("y")]
-    public int Y { get; set; }
-    [JsonPropertyName("z")]
-    public int Z { get; set; }
-    [JsonPropertyName("w")]
-    public int W { get; set; }
-}
-
-public interface INamed
-{
-    public string Name { get; set; }
-}
-
-public record TwoDimensionalPointWithName : ITwoDimensionalPoint, INamed, IBasePoint
-{
-    [JsonPropertyName("type")]
-    public string Type => "2dNamed";
-    [JsonPropertyName("name")]
-    public string Name { get; set; }
-    [JsonPropertyName("x")]
-    public int X { get; set; }
-    [JsonPropertyName("y")]
-    public int Y { get; set; }
+    [JsonPropertyName("likesToMeow")] public bool LikesToMeow { get; set; }
 }

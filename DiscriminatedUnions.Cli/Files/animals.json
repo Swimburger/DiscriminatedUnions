@@ -1,0 +1,10 @@
+[
+  {
+    "animalType": "Dog",
+    "likesToWoof": true
+  },
+  {
+    "animalType": "Cat",
+    "likesToMeow": true
+  }
+]

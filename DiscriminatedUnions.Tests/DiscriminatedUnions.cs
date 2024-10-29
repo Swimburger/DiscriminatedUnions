@@ -39,6 +39,7 @@ public enum AnimalType
 public record Animal
 {
     internal const string DiscriminatorName = "animalType";
+    
     public Animal(Dog dog)
     {
         AnimalType = AnimalType.Dog;
@@ -76,6 +77,8 @@ public record Animal
     public T As<T>() where T : AnimalValue => (T)Value;
     public Dog AsDog() => (Dog)Value;
     public Cat AsCat() => (Cat)Value;
+    public static implicit operator Animal(Dog dog) => new(dog);
+    public static implicit operator Animal(Cat cat) => new(cat);
 
     public T Match<T>(Func<Dog, T> onDog, Func<Cat, T> onCat)
     {

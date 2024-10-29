@@ -7,6 +7,7 @@
         <LangVersion>Latest</LangVersion>
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
+        <RootNamespace>DiscriminatedUnions</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>

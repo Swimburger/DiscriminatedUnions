@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscriminatedUnions", "DiscriminatedUnions\DiscriminatedUnions.csproj", "{C6BCC592-7035-4EFF-88D9-306749EE8F77}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscriminatedUnions.Tests", "DiscriminatedUnions.Tests\DiscriminatedUnions.Tests.csproj", "{C6BCC592-7035-4EFF-88D9-306749EE8F77}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscriminatedUnions.Cli", "DiscriminatedUnions.Cli\DiscriminatedUnions.Cli.csproj", "{5248612B-D166-49C2-9972-64A522845056}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -12,5 +14,9 @@ Global
 		{C6BCC592-7035-4EFF-88D9-306749EE8F77}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C6BCC592-7035-4EFF-88D9-306749EE8F77}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C6BCC592-7035-4EFF-88D9-306749EE8F77}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5248612B-D166-49C2-9972-64A522845056}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5248612B-D166-49C2-9972-64A522845056}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5248612B-D166-49C2-9972-64A522845056}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5248612B-D166-49C2-9972-64A522845056}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
